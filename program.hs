@@ -1,6 +1,14 @@
 module Program1
 where
 
+type Board = [Char]
+
+data Move = Move {
+    x :: Int
+  , y :: Int
+  , t :: Char
+} deriving Show
+
 trimString :: String -> String
 trimString ('\"':t) = reverse $ trimString $ reverse t
 trimString h = h
@@ -25,3 +33,22 @@ readValue (h:t) b
   | h == ';' = (b, t)
   | h == ' ' || h == '\"' = readValue t b
   | otherwise = readValue t (b ++ [h])
+
+readMmapValue :: String -> String  -> (String, String, String)
+readMmapValue exp b =
+  let
+    (key, t) = readValue exp []
+    (val, rest) = readValue t []
+  in
+    (key, val, rest)
+
+readMmap :: String -> (Move, String)
+readMmap [] = (Move (-1) (-1) (' '), [])
+readMmap ('m':'[':t) =
+  let
+    (keyX, valX, restX) = readMmapValue t []
+    (keyY, valY, restY) = readMmapValue restX []
+    (keyT, valT, restT) = readMmapValue restY []
+  in
+    (Move (readDigit valX) (readDigit valY) (readSymbol valT), restT)
+readMmap (h:s) = readMmap s
