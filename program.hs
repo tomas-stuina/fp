@@ -52,3 +52,20 @@ readMmap ('m':'[':t) =
   in
     (Move (readDigit valX) (readDigit valY) (readSymbol valT), restT)
 readMmap (h:s) = readMmap s
+
+readMListItems :: String -> [Move] -> [Move]
+readMListItems (']':t) moves = moves
+readMListItems exp moves = readMListItems rest moves ++ [m]
+  where (m, rest) = readMmap exp
+
+readMList :: String -> [Move]
+readMList ('l':'[':t) = reverse (readMListItems t [])
+readMList _ = error "Israiskoje nera saraso"
+
+createBoard :: Char -> Board
+createBoard t =
+  let
+    row = [t,t,t]
+    emptyBoard = row ++ row ++ row
+  in
+    emptyBoard
