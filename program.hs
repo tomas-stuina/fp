@@ -30,33 +30,33 @@ readValue (h:t) b
   | h == ' ' || h == '\"' = readValue t b
   | otherwise = readValue t (b ++ [h])
 
-readMmapValue :: String -> String  -> (String, String, String)
-readMmapValue exp b =
+readMapMValue :: String -> String  -> (String, String, String)
+readMapMValue exp b =
   let
     (key, t) = readValue exp []
     (val, rest) = readValue t []
   in
     (key, val, rest)
 
-readMmap :: String -> (Move, String)
-readMmap [] = (Move (-1) (-1) (' '), [])
-readMmap ('m':'[':t) =
+readMapM :: String -> (Move, String)
+readMapM [] = (Move (-1) (-1) (' '), [])
+readMapM ('m':'[':t) =
   let
-    (keyX, valX, restX) = readMmapValue t []
-    (keyY, valY, restY) = readMmapValue restX []
-    (keyT, valT, restT) = readMmapValue restY []
+    (keyX, valX, restX) = readMapMValue t []
+    (keyY, valY, restY) = readMapMValue restX []
+    (keyT, valT, restT) = readMapMValue restY []
   in
     (Move (readDigit valX) (readDigit valY) (readSymbol valT), restT)
-readMmap (h:s) = readMmap s
+readMapM (h:s) = readMapM s
 
-readMListItems :: String -> [Move] -> [Move]
-readMListItems (']':t) moves = moves
-readMListItems exp moves = readMListItems rest moves ++ [m]
-  where (m, rest) = readMmap exp
+readListMItems :: String -> [Move] -> [Move]
+readListMItems (']':t) moves = moves
+readListMItems exp moves = readListMItems rest moves ++ [m]
+  where (m, rest) = readMapM exp
 
-readMList :: String -> [Move]
-readMList ('l':'[':t) = reverse (readMListItems t [])
-readMList _ = error "Israiskoje nera saraso"
+readListM :: String -> [Move]
+readListM ('l':'[':t) = reverse (readListMItems t [])
+readListM _ = error "Israiskoje nera saraso"
 
 createBoard :: Char -> Board
 createBoard t =
@@ -110,7 +110,7 @@ hasWon m board =
 winner :: String -> Maybe Char
 winner exp =
   let 
-    moves = readMList exp
+    moves = readListM exp
     board = createBoard ' '
   in 
     processMoves moves board
