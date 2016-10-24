@@ -69,3 +69,44 @@ createBoard t =
     emptyBoard = row ++ row ++ row
   in
     emptyBoard
+    
+replaceMoveType:: Int -> Char -> Board -> Board
+replaceMoveType i v (h:t)
+  | i == 0 = v:t
+  | otherwise = h:replaceMoveType (i-1) v t
+
+makeMove :: Move -> Board -> Board
+makeMove move board = 
+  let
+    (Move x y t) = move
+    coords = (x * 3) + y
+  in
+    replaceMoveType coords t board
+    
+processMoves :: [Move] -> Board -> Maybe Char
+processMoves [] [] = Nothing
+processMoves [] b = Nothing
+processMoves (h:l) b =
+  let
+    (Move x y t) = h
+    board = makeMove h b
+    foundWin = hasWon t board
+  in
+    case foundWin of
+      True -> Just t
+      False -> processMoves l board;
+  
+fullRow :: Char -> Board -> Bool
+fullRow t [] = False
+fullRow t (a:b:c:s)
+  | (a == b && b == c && c == t) = True
+  | otherwise = fullRow t s
+  
+hasWon :: Char -> Board -> Bool
+hasWon m board =
+  let
+    fullRows = fullRow m board
+    vertical [a1,b1,c1,a2,b2,c2,a3,b3,c3] = fullRow m [a1,a2,a3,b1,b2,b3,c1,c2,c3]
+    diagonal [a1,_,b1,_,c2,_,b3,_,a3] = fullRow m [a1,c2,a3,b1,c2,b3]
+  in
+    fullRows || diagonal board || vertical board
