@@ -9,10 +9,6 @@ data Move = Move {
   , t :: Char
 } deriving Show
 
-trimString :: String -> String
-trimString ('\"':t) = reverse $ trimString $ reverse t
-trimString h = h
-
 readDigit :: String -> Int
 readDigit ('0':t) = 0
 readDigit ('1':t) = 1
@@ -110,3 +106,11 @@ hasWon m board =
     diagonal [a1,_,b1,_,c2,_,b3,_,a3] = fullRow m [a1,c2,a3,b1,c2,b3]
   in
     fullRows || diagonal board || vertical board
+
+winner :: String -> Maybe Char
+winner exp =
+  let 
+    moves = readMList exp
+    board = createBoard ' '
+  in 
+    processMoves moves board
