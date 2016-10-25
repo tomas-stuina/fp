@@ -82,7 +82,7 @@ makeMove :: Move -> Board -> Board
 makeMove move board = 
   let
     (Move x y t) = move
-    coords = (x * 3) + y -- Skaitome lyg dvimati 3x3 masyva
+    coords = (x * 3) + y -- koordinates skaiciuojamos lyg dvimacio 3x3 masyvo
   in
     replaceMoveType coords t board
     
