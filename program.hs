@@ -1,6 +1,13 @@
 module Program1
 where
 
+{-
+Modulis skirtas apdoroti m-expression zinute, kurioje
+uzkoduoti kryziuku-nuliuku ejimai.
+
+Laimetojo nustatymui naudojama "winner :: String -> Maybe Char" funkcija.
+-}
+
 type Board = [Char]
 
 data Move = Move {
@@ -25,9 +32,9 @@ readValue :: String -> String  -> (String, String)
 readValue [] [] = ([], [])
 readValue [] b = (b, [])
 readValue (h:t) b 
-  | h == ']' = (b, t)
-  | h == ';' = (b, t)
-  | h == ' ' || h == '\"' = readValue t b
+  | h == ']' = (b, t) -- List arba map pabaiga
+  | h == ';' = (b, t) -- Reksmiu skirtukas
+  | h == ' ' || h == '\"' = readValue t b -- Jeigu reiksme String, praleidziam kabutes.
   | otherwise = readValue t (b ++ [h])
 
 readMapMValue :: String -> String  -> (String, String, String)
@@ -75,7 +82,7 @@ makeMove :: Move -> Board -> Board
 makeMove move board = 
   let
     (Move x y t) = move
-    coords = (x * 3) + y
+    coords = (x * 3) + y -- Skaitome lyg dvimati 3x3 masyva
   in
     replaceMoveType coords t board
     
@@ -101,16 +108,16 @@ fullRow t (a:b:c:s)
 hasWon :: Char -> Board -> Bool
 hasWon m board =
   let
-    fullRows = fullRow m board
-    vertical [a1,b1,c1,a2,b2,c2,a3,b3,c3] = fullRow m [a1,a2,a3,b1,b2,b3,c1,c2,c3]
-    diagonal [a1,_,b1,_,c2,_,b3,_,a3] = fullRow m [a1,c2,a3,b1,c2,b3]
+    fullRows = fullRow m board -- Patikrinamos horizontalios eilutes
+    vertical [a1,b1,c1,a2,b2,c2,a3,b3,c3] = fullRow m [a1,a2,a3,b1,b2,b3,c1,c2,c3] -- Vertikalios paverciamos horizontaliomis ir patikrinamos.
+    diagonal [a1,_,b1,_,c2,_,b3,_,a3] = fullRow m [a1,c2,a3,b1,c2,b3] -- Istrizaines paverciamos horizontaliomis ir patikrinamos.
   in
-    fullRows || diagonal board || vertical board
+    fullRows || diagonal board || vertical board -- Tikriname ar zaidejas laimejo siuo ejimu
 
 winner :: String -> Maybe Char
 winner exp =
   let 
-    moves = readListM exp
-    board = createBoard ' '
+    moves = readListM exp -- Nuskaitomi ejimai
+    board = createBoard ' ' -- Sukuriama lenta su tusciais simboliais
   in 
-    processMoves moves board
+    processMoves moves board -- Ieskome laimetojo.
