@@ -2,21 +2,29 @@ module MExp where
 
 import Data.Char
 
-
-message :: String
-message = "l[m[\"x\"; 2; \"y\";  1;   \"v\";  \"x\"];   m[\"x\";   0;  \"y\";   0;   \"v\";  \"o\"]; m[\"x\"; 2;   \"y\";   0; \"v\"; \"x\"]; m[\"x\";   1; \"y\";   1; \"v\";  \"o\"]; m[\"x\"; 1;   \"y\";  0;   \"v\";  \"x\"];  m[\"x\";   1; \"y\"; 2; \"v\"; \"o\"]]"
-
 data Value = Value {
     valueType :: Char
   , intValue :: Int
   , charValue :: Char
   , stringValue :: String
   , listValue :: [Value]
-  , mapValue :: [Value]
-} deriving Show
+  , mapValue :: [(Value, Value)]
+} deriving (Eq,Ord,Show)
 
 emptyValue :: Value
 emptyValue = Value ' ' 0 ' ' "" [] []
+
+intToValue :: Int -> Value
+intToValue number = (Value 'd' number ' ' "" [] [])
+
+stringToValue :: String -> Value
+stringToValue text = (Value 's' 0 ' ' text [] [])
+
+valuesListToValue :: [Value] -> Value
+valuesListToValue valuesList = (Value 'l' 0 ' ' "" valuesList [])
+
+valuesMapToValue :: [(Value, Value)] -> Value
+valuesMapToValue valuesList = (Value 'm' 0 ' ' "" [] valuesList)
 
 parseIntValue :: String -> Value
 parseIntValue [] = (Value 'i' 0 ' ' "" [] [])
@@ -58,24 +66,24 @@ parseList (h:t) value
             parseList tail listValue
 
 
-addMapItem :: String -> Value -> (String, Value)
-addMapItem expression mapValue = 
+addMapItem :: Value -> [Value] -> Value
+addMapItem map [] = map
+addMapItem map (h:m:mapValues) = 
     let 
-        (Value vT iV cV sV lV mV) = mapValue
-        (tail, valueToAdd) = parseInner expression emptyValue
+        (Value vT iV cV sV lV mV) = map
+        increasedMap = (Value 'm' iV cV sV lV (mV ++ [(h,m)]))
     in
-        (tail, (Value 'm' iV cV sV lV (mV ++ [valueToAdd])))
+        addMapItem increasedMap mapValues
 
 parseMap :: String -> Value -> (String, Value)
 parseMap "" value = ("", value)
-parseMap (h:t) value
-    | h == '[' || h == ';' || h == ' ' = parseMap t value
-    | h == ']' = (t, value)
-    | otherwise = 
+parseMap expression value =
         let 
-            (tail, mapValue) = addMapItem (h:t) value
+            (tail, list) = parseList expression emptyValue
+            (Value vT iV cV sV lV mV) = list
+            mapValue = addMapItem value lV
         in 
-            parseMap tail mapValue
+            (tail, mapValue)
 
 parseInner :: String -> Value -> (String, Value)
 parseInner (h:t) value 
@@ -96,29 +104,65 @@ applySemicolon :: [Value] -> String
 applySemicolon [] = ""
 applySemicolon values = "; "
 
+applySemicolonMap :: [(Value,Value)] -> String
+applySemicolonMap [] = ""
+applySemicolonMap values = "; "
+
+mapToMExpString :: [(Value, Value)] -> String -> String
+mapToMExpString [] result = result
+mapToMExpString (h:t) result = 
+    let
+        (key, value) = h
+        keyStr = toStringInner key result
+        keyValueSplt = keyStr ++ "; "
+        valueStr = toStringInner value keyValueSplt
+        semicolon = applySemicolonMap t
+        
+    in
+        mapToMExpString t (valueStr ++ semicolon)
 
 listToMExpString :: [Value] -> String -> String
 listToMExpString [] result = result
 listToMExpString (h:t) result = 
     let
-        item = toString h result
+        item = toStringInner h result
         semicolon = applySemicolon t
     in
         listToMExpString t (item ++ semicolon)
 
-toString :: Value -> String -> String
-toString (Value vT iV cV sV lV mV) result
+toStringInner :: Value -> String -> String
+toStringInner (Value vT iV cV sV lV mV) result
     | vT == 'l' = (listToMExpString lV (result ++ "l[")) ++ "]"
-    | vT == 'm' = (listToMExpString mV (result ++ "m[")) ++ "]"
+    | vT == 'm' = (mapToMExpString mV (result ++ "m[")) ++ "]"
     | vT == 's' = result ++ "\"" ++ sV ++ "\""
     | vT == 'd' = (result ++ (show iV))
     | vT == ' ' = result
 
-getCollection :: Value -> [Value]
-getCollection (Value vT iV cV sV lV mV)
+valuesToString :: [Value] -> String -> String
+valuesToString [] result = result 
+valuesToString (h:t) result = valuesToString t ((toString h) ++ result) 
+
+toString :: Value -> String
+toString value = toStringInner value ""
+
+getList :: Value -> [Value]
+getList (Value vT iV cV sV lV mV)
     | vT == 'l' = lV
+    | otherwise = []
+
+getMap :: Value -> [(Value,Value)]
+getMap (Value vT iV cV sV lV mV)
     | vT == 'm' = mV
     | otherwise = []
+
+getFirstMapItemInner :: [(Value, Value)] -> (Value, Value)
+getFirstMapItemInner [] = (emptyValue, emptyValue)
+getFirstMapItemInner (first:tail) = first
+
+getMapItem :: Value -> Value -> (Value,Value)
+getMapItem keyToFind (Value vT iV cV sV lV mV)
+    | vT == 'm' = getFirstMapItemInner (filter( \(key, value) -> key == keyToFind) mV)
+    | otherwise = (emptyValue, emptyValue)
 
 getInt :: Value -> Maybe Int
 getInt (Value vT iV cV sV lV mV)

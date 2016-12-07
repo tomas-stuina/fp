@@ -6,6 +6,9 @@ import Game
 
 main :: IO ()
 main = do
-    Prelude.putStrLn "Hello, enter game id"
-    x <- getLine
-    Prelude.putStrLn(show $ test 3)
+    Prelude.putStrLn "Iveskite zaidimo id:"
+    gameId <- getLine
+    Prelude.putStrLn "Iveskite zaidejo numeri:"
+    player <- getLine
+    Prelude.putStrLn (show $ test )
+    --play gameId player

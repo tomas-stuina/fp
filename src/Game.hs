@@ -13,16 +13,55 @@ data Move = Move {
 
 emptyMove = (Move (-1) (-1) "")
 
-mExpToMove :: String -> Move
-mExpToMove expression =
+valuesListToMoves :: [Value] -> [Move] -> [Move]
+valuesListToMoves [] [] = []
+valuesListToMoves [] moves = moves
+valuesListToMoves (h:t) moves =
     let
-        value = parse expression
-        (xVal:yVal:tVal:rest) = getCollection value
+        (xKey, xVal) = getMapItem (stringToValue "x") h
+        (yKey, yVal) = getMapItem (stringToValue "y") h
+        (vKey, vVal) = getMapItem (stringToValue "v") h
         x = fromJust $ getInt xVal
         y = fromJust $ getInt yVal
-        t = fromJust $ getString tVal
+        v = fromJust $ getString vVal
     in
-        (Move x y t)
+        valuesListToMoves t (moves ++ [(Move x y v)])
+
+mExpToMoves :: String -> [Move]
+mExpToMoves expression =
+    let
+        list = getList (parse expression)
+        moves = valuesListToMoves list []
+    in
+        moves
+
+movesToValuesList :: [Move] -> [Value] -> [Value]
+movesToValuesList [] [] = []
+movesToValuesList [] values = values
+movesToValuesList (h:t) values =
+    let
+        (Move x y v) = h
+        (xKey, xVal) = (stringToValue "x", intToValue x)
+        (yKey, yVal) = (stringToValue "y", intToValue y)
+        (vKey, vVal) = (stringToValue "v", stringToValue v)
+        valuesMap = [(xKey, xVal), (yKey, yVal), (vKey, vVal)]
+        map = valuesMapToValue valuesMap
+    in
+        movesToValuesList t (values ++ [map])
+
+movesToMExp :: [Move] -> String
+movesToMExp moves =
+    let
+        valuesList = valuesListToValue (movesToValuesList moves [])
+    in
+        toString valuesList
+
+movesToMExpString :: [Move] -> String
+movesToMExpString moves =
+    let
+        valuesList = movesToValuesList moves []
+    in
+        valuesToString valuesList ""
 
 moveExist :: Int -> Int -> String -> [Move] -> Bool
 moveExist x y t moves
@@ -131,30 +170,30 @@ winner moves
     | boardFull moves = Just "0"
     | otherwise = Nothing
 
-minMaxBoard :: Int -> Int -> Int -> String -> String -> [Move] -> Int
-minMaxBoard pos maxScore multiplier player team moves
+miniMaxBoard :: Int -> Int -> Int -> String -> String -> [Move] -> Int
+miniMaxBoard pos maxScore multiplier player team moves
     | pos < 9 && (moveExistAtPos pos moves) == False =
         let
             (x, y) = posToCoords pos
             copyMoves = moves ++ [(Move x y player)]
             oposite = getOposite player
-            score = multiplier * (minMax copyMoves oposite team)
+            score = multiplier * (miniMax copyMoves oposite team)
             calcMax = coalesceScore score maxScore
         in
-            minMaxBoard (pos + 1) multiplier calcMax player team moves
+            miniMaxBoard (pos + 1) multiplier calcMax player team moves
 
-    | pos < 9 = minMaxBoard (pos + 1) multiplier maxScore player team moves
+    | pos < 9 = miniMaxBoard (pos + 1) multiplier maxScore player team moves
     | otherwise = maxScore
 
 
-minMax :: [Move] -> String -> String -> Int
-minMax moves player team
+miniMax :: [Move] -> String -> String -> Int
+miniMax moves player team
     | (winner moves) == Nothing =
         let
             pos = 0
             score = (-1)
             multiplier = getMultiplier player team
-            maxScore = (minMaxBoard pos score multiplier player team moves)
+            maxScore = (miniMaxBoard pos score multiplier player team moves)
         in
             (multiplier * maxScore)
     | (winner moves) == Just "0" = 0
@@ -169,7 +208,7 @@ makeMoveBoard move pos maxScore team moves
             currentMove = (Move x y team)
             copyMoves = moves ++ [currentMove]
             oposite = getOposite team
-            score = (minMax copyMoves oposite team)
+            score = (miniMax copyMoves oposite team)
             (newMove, calcMax) = coalesceMove currentMove move score maxScore
         in
             makeMoveBoard newMove (pos + 1) calcMax team moves
@@ -189,9 +228,15 @@ makeMove moves player =
         move
 
 
-test :: Int -> Move
-test x = 
+getMovesFromMExp :: String -> [Move]
+getMovesFromMExp [] = []
+getMovesFromMExp moveMExp = mExpToMoves moveMExp
+    
+
+test :: String
+test = 
     let
-        moves = [(Move 0 0 "x"), (Move 1 0 "o"),(Move 2 0 "x"),(Move 1 1 "o")]
+        moves = [(Move 0 0 "x"),(Move 1 0 "o"),(Move 2 0 "x"),(Move 0 1 "o"),(Move 1 1 "x"),(Move 0 2 "o"),(Move 2 1 "x")]
+        playerMove = makeMove moves "o"
     in
-        makeMove moves "x"
+        show (playerMove)
