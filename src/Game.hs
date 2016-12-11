@@ -3,6 +3,8 @@ module Game where
 import MExp
 import Data.Char
 import Data.Maybe
+import Data.Function (on)
+import Data.List
 
 
 data Move = Move {
@@ -118,26 +120,20 @@ posToCoords pos =
 coordsToPos :: (Int, Int) -> Int
 coordsToPos (x, y) = (y * 3) + x
 
-getOposite :: String -> String
-getOposite player
-    | player == "x" = "o"
-    | player == "o" = "x"
-    | otherwise = "0"
+oponent :: String -> String
+oponent "x" = "o"
+oponent _ = "x"
 
-getMultiplier :: String -> String -> Int
-getMultiplier player oposite
-    | player == oposite = 1
-    | otherwise = (-1)
 
-coalesceScore :: Int -> Int -> Int
-coalesceScore this max
-    | this > max = this
-    | otherwise = max
+getPlayer :: Bool -> String
+getPlayer player
+    | player = "x"
+    | otherwise = "o"
 
-coalesceMove :: Move -> Move -> Int -> Int -> (Move, Int) 
-coalesceMove thisMove bestMove this max
-    | this > max = (thisMove, this)
-    | otherwise = (bestMove, max)
+getPlayerState :: String -> Bool
+getPlayerState player
+    | player == "x" = True
+    | otherwise = False
 
 fullRow :: Char -> String -> Bool
 fullRow t [] = False
@@ -170,73 +166,57 @@ winner moves
     | boardFull moves = Just "0"
     | otherwise = Nothing
 
-miniMaxBoard :: Int -> Int -> Int -> String -> String -> [Move] -> Int
-miniMaxBoard pos maxScore multiplier player team moves
-    | pos < 9 && (moveExistAtPos pos moves) == False =
-        let
-            (x, y) = posToCoords pos
-            copyMoves = moves ++ [(Move x y player)]
-            oposite = getOposite player
-            score = multiplier * (miniMax copyMoves oposite team)
-            calcMax = coalesceScore score maxScore
-        in
-            miniMaxBoard (pos + 1) multiplier calcMax player team moves
-
-    | pos < 9 = miniMaxBoard (pos + 1) multiplier maxScore player team moves
-    | otherwise = maxScore
-
-
-miniMax :: [Move] -> String -> String -> Int
-miniMax moves player team
-    | (winner moves) == Nothing =
-        let
-            pos = 0
-            score = (-1)
-            multiplier = getMultiplier player team
-            maxScore = (miniMaxBoard pos score multiplier player team moves)
-        in
-            (multiplier * maxScore)
-    | (winner moves) == Just "0" = 0
-    | (winner moves) == Just team = 1
-    | otherwise = -1
-
-makeMoveBoard :: Move -> Int -> Int -> String -> [Move] -> Move
-makeMoveBoard move pos maxScore team moves
-    | pos < 9 && (moveExistAtPos pos moves) == False =
-        let
-            (x, y) = posToCoords pos
-            currentMove = (Move x y team)
-            copyMoves = moves ++ [currentMove]
-            oposite = getOposite team
-            score = (miniMax copyMoves oposite team)
-            (newMove, calcMax) = coalesceMove currentMove move score maxScore
-        in
-            makeMoveBoard newMove (pos + 1) calcMax team moves
-
-    | pos < 9 = makeMoveBoard move (pos + 1) maxScore team moves
-    | otherwise = move
-
-
-makeMove :: [Move] -> String -> Move
-makeMove moves player =
-    let
-        pos = 0
-        score = (-1)
-        newMove = emptyMove
-        move = (makeMoveBoard newMove pos score player moves)
-    in
-        move
-
 
 getMovesFromMExp :: String -> [Move]
 getMovesFromMExp [] = []
 getMovesFromMExp moveMExp = mExpToMoves moveMExp
-    
 
-test :: String
-test = 
-    let
-        moves = [(Move 0 0 "x"),(Move 1 0 "o"),(Move 2 0 "x"),(Move 0 1 "o"),(Move 1 1 "x"),(Move 0 2 "o"),(Move 2 1 "x")]
-        playerMove = makeMove moves "o"
-    in
-        show (playerMove)
+
+
+miniMax :: String -> [Move] -> Move
+miniMax player [] = (Move 0 0 player)
+miniMax player moves = 
+        let
+            availableMoves = getAvailableMoves player moves
+            mapped = map (\move -> ((minPlay (oponent player) player (makeMove player move moves) (availableMoves \\ [move])), move)) availableMoves
+            (score, move) = maximumBy (compare `on` fst) mapped
+        in
+            move
+
+
+minPlay :: String -> String-> [Move] -> [Move] -> Int
+minPlay player team moves availableMoves
+    | (winner moves) == Just team = 1
+    | (winner moves) == Just (oponent team) = -1
+    | (winner moves) == Just "0" = 0
+    | otherwise =
+        let
+            mapped = map (\move -> maxPlay (oponent player) team (makeMove player move moves) (availableMoves \\ [move])) availableMoves
+        in
+            minimum mapped
+
+maxPlay :: String -> String -> [Move] -> [Move] -> Int
+maxPlay player team moves availableMoves
+    | (winner moves) == Just team = 1
+    | (winner moves) == Just (oponent team) = -1
+    | (winner moves) == Just "0" = 0
+    | otherwise =
+        let
+            mapped = map (\move -> minPlay (oponent player) team (makeMove player move moves) (availableMoves \\ [move])) availableMoves
+        in
+            maximum mapped
+
+
+makeMove player move moves = let (Move x y t) = move in moves ++ [(Move x y player)]
+
+getAvailableMoves player moves = loop player 0 moves []
+
+loop :: String -> Int -> [Move] -> [Move] -> [Move]
+loop player pos moves available
+    | pos < 9 && (moveExistAtPos pos moves) == False  = 
+        let
+            (x, y) = posToCoords pos
+        in
+            loop player (pos + 1) moves (available ++ [(Move x y player)])
+    | pos < 9  = (loop player (pos + 1) moves available)
+    | otherwise = available

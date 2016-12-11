@@ -10,5 +10,4 @@ main = do
     gameId <- getLine
     Prelude.putStrLn "Iveskite zaidejo numeri:"
     player <- getLine
-    Prelude.putStrLn (show $ test )
-    --play gameId player
+    play gameId player

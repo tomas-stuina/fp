@@ -62,7 +62,7 @@ post url player moves = do
       do
       manager <- newManager defaultManagerSettings
       initialRequest <- parseUrlThrow $ url
-      let playerMove = makeMove moves player
+      let playerMove = miniMax player moves
       let movesToSend = moves ++ [playerMove]
       let movesToSendExp = movesToMExp movesToSend
       Prelude.putStrLn ("POST")
