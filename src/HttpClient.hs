@@ -44,14 +44,14 @@ get url player moves = do
       requestHeaders = [(hContentType, Byte.pack "application/m-expr"),(hAccept, Byte.pack "application/m-expr")]
       }
       response <- httpLbs request manager
-      Prelude.putStrLn ("GET")
       let movesFromOponent = getMovesFromMExp (unpack $ responseBody response)
       let (oponent:t) = Prelude.reverse movesFromOponent
+      Prelude.putStrLn ("GET")
       Prelude.putStrLn ( show $ oponent )
       Prelude.putStrLn ("")
       post url player movesFromOponent
   else
-    Prelude.putStrLn ( fromJust checkWinner )
+    Prelude.putStrLn ( getGameState checkWinner )
 
   
 post :: String -> String -> [Move] -> IO()
@@ -67,6 +67,7 @@ post url player moves = do
       let movesToSendExp = movesToMExp movesToSend
       Prelude.putStrLn ("POST")
       Prelude.putStrLn ( show $ playerMove )
+      Prelude.putStrLn ("")
       let request = initialRequest { 
       method = Byte.pack "POST",
       requestHeaders = [(hContentType, Byte.pack "application/m-expr"),(hAccept, Byte.pack "application/m-expr")],
@@ -75,4 +76,4 @@ post url player moves = do
       response <- httpLbs request manager
       get url player movesToSend
   else
-    Prelude.putStrLn ( fromJust checkWinner )
+    Prelude.putStrLn ( getGameState checkWinner )

@@ -166,6 +166,13 @@ winner moves
     | boardFull moves = Just "0"
     | otherwise = Nothing
 
+getGameState :: Maybe String -> String
+getGameState state = case state of
+    Just "x" -> "Winner X!"
+    Just "o" -> "Winner O!"
+    Just "0" -> "Draw!"
+    _ -> "Game state unknown."
+
 
 getMovesFromMExp :: String -> [Move]
 getMovesFromMExp [] = []
